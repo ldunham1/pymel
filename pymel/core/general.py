@@ -1065,12 +1065,12 @@ Modifications:
 def ls(*args, **kwargs):
     """
 Modifications:
-  - Returns PyNode objects, not "names" - all flags which do nothing but modify
+  - Returns PyNode objects OR UUID's, not "names" - all flags which do nothing but modify
     the string name of returned objects are ignored (ie, 'long'); note that
     the 'allPaths' flag DOES have an effect, as PyNode objects are aware of
     their dag paths (ie, two different instances of the same object will result
-    in two unique PyNodes)
-  - Added new keyword: 'editable' - this will return the inverse set of the readOnly flag. i.e. non-read-only nodes
+    in two unique PyNodes).
+  - Added new keyword: 'editable' - this will return the inverse set of the readOnly flag. i.e. non-read-only nodes.
   - Added new keyword: 'regex' - pass a valid regular expression string, compiled regex pattern, or list thereof.
 
         >>> group('top')
@@ -1145,6 +1145,8 @@ Modifications:
         tmp = res
         res = []
         for x in tmp:
+            
+            # This is an issue if uuids given 
             for reg in regexArgs:
                 if reg.search(x):
                     res.append(x)
@@ -1152,8 +1154,13 @@ Modifications:
 
     if editable:
         kwargs['readOnly'] = True
-        kwargs.pop('ro', True)
-        roNodes = _util.listForNone(cmds.ls(*args, **kwargs))
+        kwargs.pop('ro', None)
+        
+        # Cast to set for faster lookup
+        roNodes = set(
+            _util.listForNone(cmds.ls(*args, **kwargs))
+        )
+        
         # faster way?
         return map(PyNode, filter(lambda x: x not in roNodes, res))
 
@@ -1181,6 +1188,10 @@ Modifications:
 #    return res
     if kwargs.get('showNamespace', kwargs.get('sns', False)):
         return [system.Namespace(item) if i % 2 else PyNode(item) for i, item in enumerate(res)]
+    
+    if kwargs.get('uuid', kwargs.get('uid', False)):
+        # If uuid requested, dont bother casting to PyNode.
+        return res
 
     return map(PyNode, res)
 
